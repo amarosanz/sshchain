@@ -6,6 +6,7 @@ import numpy as np
 import numpy.linalg as linalg
 from scipy.linalg import block_diag
 import matplotlib.pyplot as plt
+from tabulate import tabulate
 import math
 import time
 
@@ -18,7 +19,7 @@ import time
 t1=0.7 #integral de salto intra-cell   
 t2=0.3 #integral de salto inter-cell
 d=t2/t1
-N =21 #número de átomos de la cadena 
+N = 10 #número de átomos de la cadena 
 
 parent_dir = os.path.dirname(os.getcwd())
 if (not os.path.exists(os.path.join(parent_dir, "plots_ssh"))):
@@ -262,18 +263,107 @@ def estatedecay(t1,t2):
 
 # Definir la ecuación a resolver
 
+
+def find_roots(M, D, a=0+10**(-6), b=np.pi-10**(-6), eps=1e-6, max_iter=1000, n=10000):
+    """
+    Encuentra todas las raíces de la función f en el intervalo [a, b] utilizando el método de Newton.
+
+    Args:
+    - M: un parámetro para la función f.
+    - D: un parámetro para la función f.
+    - a: el límite inferior del intervalo de búsqueda.
+    - b: el límite superior del intervalo de búsqueda.
+    - eps: la tolerancia para la convergencia del método de Newton.
+    - max_iter: el número máximo de iteraciones permitidas en el método de Newton.
+    - n: el número de subintervalos en los que se divide el intervalo [a, b] para buscar las raíces.
+
+    Returns:
+    - Una lista que contiene todas las raíces encontradas en el intervalo [a, b].
+    """
+    
+    def f(x):
+        return np.tan(x*(M))+D*np.sin(x)/(1+D*np.cos(x))
+#    def f(x):
+#        return np.tan(x*(M+1))-D*np.sin(x)/(1+D*np.cos(x))
+
+    def df(x):
+        return M*(1/np.cos(M*x))**2 + (D**2*(np.sin(x)*np.sin(x)))/((D*np.cos(x)+1)*(D*np.cos(x)+1)) + D*np.cos(x)/(D*np.cos(x)+1)
+
+
+
+
+#    def df(x):
+#        return (M+1)*(1/np.cos((M+1)*x))**2 - D**2*(np.sin(x))**2/(D*np.cos(x)+1)**2 - D*np.cos(x)/(D*np.cos(x)+1)
+
+
+    roots = []
+    dx = (b - a)/n
+    
+    for i in range(n):
+        x0 = a + i*dx
+        x1 = a + (i+1)*dx
+        x = x0
         
+        for j in range(max_iter):
+            fx = f(x)
+            
+            if abs(fx) < eps:
+                roots.append(x)
+                break
+                
+            dfx = df(x)
+            
+            if dfx == 0:
+                break
+                
+            x = x - fx/dfx
+            
+            if x < x0 or x > x1:
+                break
     
+    table = []
+    th_eigenenergies = []
+    
+    for i in roots:
+        sublist=[roots.index(i)+1,i,f(i)]
+        table.append(sublist)
+        e = np.sqrt(1+D**2+2*D*np.cos(i))
+        th_eigenenergies.append(e)
+        th_eigenenergies.append(-e)
+    
+    th_eigenenergies = sorted(th_eigenenergies)
+    
+    
+
+    print(tabulate(table, headers=["Nº", "Solution", "Distance to 0"]))
+    print("Número de soluciones encontradas =", len(roots))    
+    print(th_eigenenergies)
+
+    
+            
+    return roots, th_eigenenergies
+
  
-    
-    
-    
+
+def th_eigenenergies_check(t1,t2,d,N):
+    th_eigenenergies = find_roots(N//2,d)[1]
+    eigenenergies = dospar(t1,t2,N)[2]/t1
+    print("th_eigenenergies",th_eigenenergies)
+    print("eigenenergies",eigenenergies)
     
   
-plot_eigenstates(t1,t2,N)
+
+
+
+"""Código fuera de las funciones"""  
+#th_eigenenergies_check(t1,t2,d,N)    
+#find_roots(N//2,d)
+#print(tridiagfinal(t1,t2,N))
+#plot_eigenstates(t1,t2,N)
 #plt.show()    
         
     
+
 
     
     
