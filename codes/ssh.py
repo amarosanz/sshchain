@@ -456,14 +456,9 @@ suma = 0
 suma2 = 0 
 for i in range(1,M+1):
     suma += 8*(np.sinh(i*q))**4
-#    print(suma)
-#    suma2 += 0.5*(e**(4*q*i)+e**(-4*q*i))-2*(e**(2*q*i)+e**(-2*q*i))
-#    print(suma2)
 print("Suma = ", suma)
 
-#suma2 = 3*M + (np.sinh(4*q) - np.sinh(4*q*(M+1))) / (1 - np.cosh(4*q)) - np.tanh(2*q*(M+1))*np.tanh(2*q) - 2*(np.sinh((2*M+1)*q)/np.sinh(q)-1)
 
-#suma2 = 3*M+0.5*((e**(4*q)-e**(4*q*(M+1)))/(1-e**(4*q))+(e**(-4*q)-e**(-4*q*(M+1)))/(1-e**(-4*q))) -2*(np.sinh(q*(2*M+1))/np.sinh(q)-1)
 suma2 = 3*M+0.5*(np.sinh(q*2*(2*M+1))/np.sinh(2*q)-1) -2*(np.sinh(q*(2*M+1))/np.sinh(q)-1)
 print("Suma simplificada = ", suma2)  
 
