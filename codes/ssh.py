@@ -21,10 +21,10 @@ import itertools
 ######################################################################
 
 #Definición constantes
-t1=0.6 #integral de salto intra-cell   
-t2=0.7 #integral de salto inter-cell
+t1=1/1.2 #integral de salto intra-cell   
+t2=1.2 #integral de salto inter-cell
 d=t2/t1
-N = 40 #número de átomos de la cadena 
+N = 20 #número de átomos de la cadena 
 Mc = 1/(d-1)
 print("t1 = ", t1)
 print("t2 = ", t2)
@@ -72,10 +72,7 @@ def tridiagfinal(t1,t2,N):
     return H
 
 
-    
-
-                                   
-
+   
 
 #Matriz hamiltoniana de dimension impar 
 
@@ -110,6 +107,7 @@ def h_impar(t2,t1,N):
 def dospar(t1,t2,N):
     start_time = time.time() # Comienzo de la medición de tiempo 
     Ha = tridiagfinal(t1,t2,N)
+    print(Ha)
     Hb = tridiagfinal(t2,t1,N)
     eigenvaluesa, eigenvectorsa = np.linalg.eigh(Ha)
     eigenvaluesb, eigenvectorsb = np.linalg.eigh(Hb)
@@ -119,10 +117,14 @@ def dospar(t1,t2,N):
     eigenvaluesb = eigenvaluesb[idx]
     eigenvectorsb = eigenvectorsb[:,idx]
     
+    diag_ha = np.diag(eigenvaluesa)
+    print(diag_ha)
+  
+    
     elapsed_time = time.time() - start_time # Tiempo de ejecución
     print(f"Tiempo de ejecución de la función {dospar.__name__}: {elapsed_time:.5f} segundos") # Imprime el tiempo de ejecución
     
-    return eigenvaluesa,eigenvectorsa,eigenvaluesb,eigenvectorsb
+    return eigenvaluesa,eigenvectorsa,eigenvaluesb,eigenvectorsb,diag_ha
     
 def impar(t1,t2,N):
     start_time = time.time() # Comienzo de la medición de tiempo 
@@ -142,7 +144,7 @@ def impar(t1,t2,N):
 def eigenstates(t1,t2,N):
     start_time = time.time() # Comienzo de la medición de tiempo 
     if N%2==0:
-        _, eigenvectors, _, _ = dospar(t1,t2,N)
+        _, eigenvectors, _, _,_ = dospar(t1,t2,N)
     else: 
         _, eigenvectors = impar(t1,t2,N)
     
@@ -232,7 +234,7 @@ def plot_eigenstates(t1,t2,N):
 #        print("Pesos átomos B",pesos_b)
         plt.bar(X_par,pesos_b[j],color="red", edgecolor="black",label="B atoms")
         plt.bar(X_impar,pesos_a[j],color="blue", edgecolor="black", label="A atoms")
-        plt.title("Eigenstate number " + str(j+1) + " for $t_1$=" + str(t1) + ", $t_2$=" + str(t2))
+        plt.title("Eigenstate number " + str(j+1) + " for $t_1$=" + str(round(t1,2)) + ", $t_2$=" + str(round(t2,2)))
 
         plt.legend()
         plt.xlabel("Atom index")
@@ -240,7 +242,7 @@ def plot_eigenstates(t1,t2,N):
         if (not os.path.exists(ruta_N)):
             os.mkdir(ruta_N)
         print(j)
-        outputplot=ruta_N+"/"+"Eigenstate"+str(j+1)+".png"
+        outputplot=ruta_N+"/"+"Eigenstate"+str(j+1)+".pdf"
         plt.savefig(outputplot)
   
     j+=1
@@ -374,62 +376,55 @@ def th_eigenenergies_check(t1,t2,d,N):
     elapsed_time = time.time() - start_time # Tiempo de ejecución
     print(f"Tiempo de ejecución de la función {th_eigenenergies_check.__name__}: {elapsed_time:.5f} segundos") # Imprime el tiempo de ejecución
 
-  
+
+ 
 
 #######################################################################
 #######################################################################
 """INTERACCIÓN ELECTRÓN ELECTRÓN"""
 
 def Vbulk(U,M,D):
+    print("\n###################\nCálculo UBulk\n###################\n")
     sol = find_roots(N//2,d)[2]
-   
-    def A_alpha(k):
-        return 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k)/np.sin(k)))
-    def suma(k1,k2):
-        suma = 0
-        for i in range(1,M+1):
-            suma += (np.sin(k1*i))**(2)*(np.sin(k2*i))**(2)
-        return suma
-    
-    def suma2(k1,k2):
-#        res = (4*M-2*(np.sin((2*M+1)*k1)/(np.sin(k1))+np.sin((2*M+1)*k2)/(np.sin(k2)))+(np.sin((2*M+1)*(k1+k2))/(np.sin((k1+k2)))+np.sin((2*M+1)*(k1-k2))/np.sin(k1-k2))+2)
-        res2 = 2*(2*M+1-(np.sin((2*M+1)*k1)/np.sin(k1)))+2*(2*M+1-(np.sin((2*M+1)*k2)/np.sin(k2)))-(2*M+1-(np.sin((2*M+1)*(k1-k2))/np.sin(k1-k2)))-(2*M+1-(np.sin((2*M+1)*(k1+k2))/np.sin(k1+k2)))
-        return res2/16
-    
-    
-    combinaciones = list(itertools.combinations(sol, 2))
-    comblist = [list(elem) for elem in combinaciones]
-    
-    
-    mejor_comb = comblist[0]
-    mejor_dif = abs(sum(mejor_comb)-np.pi)
-    for comb in combinaciones[1:]:
-        sumal = sum(comb)
-        dif = abs(sumal-np.pi)
-        if dif<mejor_dif:
-            mejor_comb = comb
-            mejor_dif = dif
-    
-    #Seleccionamos dos k's al azar (los dos autoestados que interactúan)
-#    k1 = random.choice(sol)
-    k1 = mejor_comb[0]
-    print("k1=",k1)
-#    k2 = random.choice(sol)
-    k2 = mejor_comb[1]
-    print("k2=",k2) 
-    
+    suma = 0
+    parejas_contadas = set()
+    for i in range(len(sol)):
+        k1 = sol[i]
+        
+        for j in range(i, len(sol)):
+            k2 = sol[j]
+            pareja = tuple(sorted((k1, k2)))  # Pareja ordenada de k para evitar duplicados
             
-    print ("La combinación de k's más cercana a pi es ", mejor_comb)
-    print("Diferencia a pi", mejor_dif)
-    print("Numero combinaciones posibles", len(comblist))
-    print("Suma simplificada=", suma2(k1,k2))
-#    print("Suma simplificada Jaime=", suma2(k1,k2)[1])
-    print("Suma=",suma(k1,k2))
+            if pareja not in parejas_contadas:
+                for n in range(1, M+1):
+                    A1 = 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k1)/np.sin(k1)))
+                    A2 = 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k2)/np.sin(k2)))
+                    sin_squared1 = np.sin(k1*n)**2
+                    sin_squared2 = np.sin(k2*n)**2
+                    suma += A1**(2)*A2**(2)* sin_squared1 * sin_squared2
+                
+                parejas_contadas.add(pareja) # Registrar pareja como contada
+#    for n in range(1,M+1):
+#        for i1 in range (len(sol)):
+#            for i2 in range (len(sol)):
+#                k1 = sol[i1]
+#                k2 = sol[i2]
+#                A1 = 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k1)/np.sin(k1)))
+#                A2 = 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k2)/np.sin(k2)))
+#                suma += A1**(2)*A2**(2)*(np.sin(k1*n))**(2)*(np.sin(k2*n))**(2)
+    print("LEN", len(parejas_contadas))  
+    print("LEN teórica", ((M-1)+(M-1)*(M-2)/2))      
+    Ub = 4*U*suma
+    print("Ub =", Ub)
+    return Ub
+        
+
     
     
     
 
 def Vedge(U,M,D):
+    print("\n###################\nCálculo UEdge\n###################\n")
     qlist = find_roots(N//2,d)[0]
     q = qlist[-1]
     print(q)
@@ -439,28 +434,138 @@ def Vedge(U,M,D):
             suma += (np.sinh(i*q))**4
         return suma
     
-    
+    suma2 = (3*M+0.5*(np.sinh(q*2*(2*M+1))/np.sinh(2*q)-1) -2*(np.sinh(q*(2*M+1))/np.sinh(q)-1))/8
+    print("Test fórmula simplificada")
     print("Suma = ", suma(q))
     print("Suma simplificada = ", suma2)      
+    
+    s = D**4
+    A_q = np.sqrt(2*(1-s)*s**(M)/(1-s**(2*M+1)-(2*M+1)*(1-s)*s**(M)))
+    print("A_q =", A_q)
+    Uq = 4*U*A_q**(4)*suma2
+    print("Uq =", Uq)
+    return Uq 
+    
+    
+def Vbulkedge(U,M,D):
+    print("\n###################\nCálculo UBUlkEdge\n###################\n")    
+    sol = find_roots(N//2,d)[2]
+    qlist = find_roots(N//2,d)[0]
+    q = qlist[-1]
+#    print(q)
+#    s = D**4
+#    A_q = np.sqrt(2*(1-s)*s**(M)/(1-s**(2*M+1)-(2*M+1)*(1-s)*s**(M)))
+    A_q = (0.5*(np.sinh(q*(2*M+1))/np.sinh(q)-1)-M)**(-1/2)
+    suma = 0
+    for i in range(1,M+1):
+        for k in sol: 
+            A_alpha = 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k)/np.sin(k)))
+            suma += A_alpha**(2)*((np.sin(k*i))**2)*(np.sinh(q*i))**2
+    
+    Ube = 4*A_q**(2)*suma 
+    print("U_BE =", Ube)   
 
 
+def correlationbulk(U,M,D,dop):
+    x = list(range(1,N-1))
+    th_eigenenergies = find_roots(N//2,d)[1]
+    qlist = find_roots(N//2,d)[0]
+    q = qlist[-1]
+#    eigenenergies = dospar(t1,t2,N)[0]/t1
+    th_k = find_roots(N//2,d)[2]
+    print("\nTh k", th_k)
+    print("\nLength Theoretical k", len(th_k))
+    sol = []
+    for i in th_k: 
+        ep = np.sqrt(1+D**2+2*D*np.cos(i))
+        sol.append(ep)
+        sol.append(-ep)
+    sol = sorted(sol)
+    plt.scatter(x,sol, label="w/o correlation", color="Blue", s=17)
+
+#    print("\nBulk energies from th k",sol)
+#    print("\nLength Bulk energies", len(sol))
+    print("\nAll eigenenergies", th_eigenenergies)
+   
+    new = sol
+    for i in sol:
+        pos=sol.index(i)
+        posk = sol.index(i)%(M-1)
+#        print(pos)
+        Ub = 0
+        s = D**4
+#        print("D,", d)
+#        print("s",s)
+        A_q = (0.5*(np.sinh(q*(2*M+1))/np.sinh(q)-1)-M)**(-1/2)
+#        print("A_q, ",A_q)
+        k1 = th_k[posk]
+
+        A1 = 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k1)/np.sin(k1)))
+        for k2 in th_k:
+            Ube = 0
+            for n in range (len(sol)//2):
+                A2 = 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k2)/np.sin(k2)))
+#                print("A2", A2)
+                sin_squared1 = np.sin(k1*n)**2
+                sin_squared2 = np.sin(k2*n)**2
+                sinh_squared = np.sinh(q*n)**2
+#                print("sh**2: ", sinh_squared)
+                Ube += A2**(2)*A_q**(2) * sin_squared2 *sinh_squared
+                Ub += A1**(2)*A2**(2)* sin_squared1 * sin_squared2
+        Ub = 4*U*Ub/t1
+        Ube = 4*U*Ube/t1
+        print("Ube", Ube)
+        new[pos] +=Ub + Ube
+#        k1 = np.arccos(((i)**2-1-d**2)/(2*d))
+#        print("\nUb", Ub)
+    print("\nNew bulk eigenenergies w correlation", sorted(new))
+#        for k2 in th_k
+    
+
+    plt.scatter(x,sorted(new), label="w correlation (PM)", s=17, color="RED")
+    plt.title(str(N)+"-atom chain bulk eigenvalues, $t_1$="+str(t1)+", $t_2$="+str(t2))
+    plt.grid(visible=True,lw=0.5)
+    plt.legend(fontsize=13)
+    plt.savefig("correlationbulk.pdf")
+#    plt.show()
+
+def Ak(M): #Evolucion del coeficiente Ak en función de k
+    for k1 in find_roots(N//2,d)[2]:
+        Ak = 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k1)/np.sin(k1)))
+        plt.scatter(k1,Ak**2, color="green",s=12)
+    plt.show()
+
+    
+"""Código fuera de las funciones"""
+#Vbulk(1,N//2,d)  
+#correlationbulk(1,N//2,d,0)
+#Ak(N//2)
+#Vedge(1,N//2,d)  
+#Vbulkedge(1,N//2,d)  
+#plot_eigenstates(t1,t2,N)
+print(tridiagfinal(t1,t2,N))
 
 
-"""Código fuera de las funciones"""  
-#Vedge(1,N//2,d)    
+#print(h_impar(t2,t1,5))
+#b = find_roots(N//2,d)
+#print(b[2])
 
-q = 0.12
-e=math.e
-M = N//2
-suma = 0
-suma2 = 0 
-for i in range(1,M+1):
-    suma += 8*(np.sinh(i*q))**4
-print("Suma = ", suma)
+#q = 0.12
+#e=math.e
+#M = N//2
+#suma = 0
+#suma2 = 0 
+#for i in range(1,M+1):
+#    suma += 8*(np.sinh(i*q))**4
+#print("Suma = ", suma)
 
 
-suma2 = 3*M+0.5*(np.sinh(q*2*(2*M+1))/np.sinh(2*q)-1) -2*(np.sinh(q*(2*M+1))/np.sinh(q)-1)
-print("Suma simplificada = ", suma2)  
+#suma2 = 3*M+0.5*(np.sinh(q*2*(2*M+1))/np.sinh(2*q)-1) -2*(np.sinh(q*(2*M+1))/np.sinh(q)-1)
+#print("Suma simplificada = ", suma2)  
+
+
+#dospar(t1,t2,N)
+
 
 
 #Vbulk(1,N//2,d)
@@ -572,7 +677,51 @@ print("Suma simplificada = ", suma2)
 #            
 #    return roots, th_eigenenergies
 
-
+#def Vbulk(U,M,D):
+#    sol = find_roots(N//2,d)[2]
+#   
+#    def A_alpha(k):
+#        return 1/np.sqrt(M+0.5*(1-np.sin((2*M+1)*k)/np.sin(k)))
+#    def suma(k1,k2):
+#        suma = 0
+#        for i in range(1,M+1):
+#            suma += (np.sin(k1*i))**(2)*(np.sin(k2*i))**(2)
+#        return suma
+#    
+#    def suma2(k1,k2):
+##        res = (4*M-2*(np.sin((2*M+1)*k1)/(np.sin(k1))+np.sin((2*M+1)*k2)/(np.sin(k2)))+(np.sin((2*M+1)*(k1+k2))/(np.sin((k1+k2)))+np.sin((2*M+1)*(k1-k2))/np.sin(k1-k2))+2)
+#        res2 = 2*(2*M+1-(np.sin((2*M+1)*k1)/np.sin(k1)))+2*(2*M+1-(np.sin((2*M+1)*k2)/np.sin(k2)))-(2*M+1-(np.sin((2*M+1)*(k1-k2))/np.sin(k1-k2)))-(2*M+1-(np.sin((2*M+1)*(k1+k2))/np.sin(k1+k2)))
+#        return res2/16
+#    
+#    
+#    combinaciones = list(itertools.combinations(sol, 2))
+#    comblist = [list(elem) for elem in combinaciones]
+#    
+#    
+#    mejor_comb = comblist[0]
+#    mejor_dif = abs(sum(mejor_comb)-np.pi)
+#    for comb in combinaciones[1:]:
+#        sumal = sum(comb)
+#        dif = abs(sumal-np.pi)
+#        if dif<mejor_dif:
+#            mejor_comb = comb
+#            mejor_dif = dif
+#    
+#    #Seleccionamos dos k's al azar (los dos autoestados que interactúan)
+##    k1 = random.choice(sol)
+#    k1 = mejor_comb[0]
+#    print("k1=",k1)
+##    k2 = random.choice(sol)
+#    k2 = mejor_comb[1]
+#    print("k2=",k2) 
+#    
+#            
+#    print ("La combinación de k's más cercana a pi es ", mejor_comb)
+#    print("Diferencia a pi", mejor_dif)
+#    print("Numero combinaciones posibles", len(comblist))
+#    print("Suma simplificada=", suma2(k1,k2))
+##    print("Suma simplificada Jaime=", suma2(k1,k2)[1])
+#    print("Suma=",suma(k1,k2))
     
     
 #def plot_eigenstates(t1,t2,N):
