@@ -9,11 +9,12 @@ from scipy.linalg import block_diag
 import matplotlib.pyplot as plt
 
 #Definición constantes
-t1=1 #integral de salto intra-cell   
-#t2=1 #integral de salto inter-cell
-N =10 #número de celdas unidad de la cadena
+#t1=1 #integral de salto intra-cell   
+t2=1 #integral de salto inter-cell
+N =20 #número de celdas unidad de la cadena
 
-rutassh = os.path.join(os.getcwd(), "plots_ssh")
+parent_directory = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+rutassh = os.path.join(parent_directory, "plots_ssh")
 ruta_plots= rutassh+"/"+"energyspectrum"
 ######################################################################
 ######################################################################
@@ -53,11 +54,11 @@ lista_energias=[]
 #    eigenvalues, eigenvectors = np.linalg.eigh(H)
 #    energia=eigenvalues.tolist()
 #    lista_energias.append(energia)
-#    
+    
 
 #HOLD t2 constant 
 for i in t2list: 
-    H = tridiagfinal(t1,i,N)
+    H = tridiagfinal(i,t2,N)
     eigenvalues, eigenvectors = np.linalg.eigh(H)
     energia=eigenvalues.tolist()
     lista_energias.append(energia)
@@ -74,15 +75,15 @@ for i in range(0,2*N):
 #    pos=lista_energias.index(i)
     plt.plot(t2list,energias_ordenadas[i],color="blue",lw=1)
 
-plt.xlabel("$t_2$")
-plt.ylabel("Eigenenergies")
-plt.title("Eigenvalue spectrum vs $t_2$, $t_1$="+str(t1))
+plt.xlabel("$t_1$", fontsize = 15)
+plt.ylabel("Eigenenergies", fontsize = 15)
+plt.title("Eigenvalue spectrum vs $t_1$, $t_2$="+str(t2), fontsize = 17)
 plt.grid(visible=True,lw=0.5)
 
 if (not os.path.exists(ruta_plots)):
         os.mkdir(ruta_plots)   
 
-outputplot=ruta_plots+"/"+"t1-"+str(t1)+"N-"+str(N)+".pdf"
+outputplot=ruta_plots+"/"+"t2-"+str(t2)+"N-"+str(N)+".pdf"
 plt.savefig(outputplot)        
         
          

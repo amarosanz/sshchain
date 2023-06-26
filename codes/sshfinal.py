@@ -22,10 +22,10 @@ import itertools
 ######################################################################
 #Definición constantes 
 
-t1 = 1/1.2 #integral de salto intra-cell   
+t1 = 1 #integral de salto intra-cell   
 t2 = 1.2 #integral de salto inter-cell
 D=t2/t1
-N = 60 #número de átomos de la cadena 
+N = 12 #número de átomos de la cadena 
 M = N//2 #número de celdas unidad de la cadena
 Mc = 1/(D-1) #número de celdas unidad crítico de la cadena
 dop = 0 #dopaje estados de borde
@@ -228,17 +228,17 @@ def plot_all(t1, t2, N):
     values, states = np.linalg.eigh(h)
 
     # Crear la figura y los subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharey=True, figsize=(12, 12))
+    fig, ((ax3, ax4), (ax1, ax2)) = plt.subplots(2, 2, sharey=True, figsize=(12, 12))
 
     # Ajustar los márgenes y el espacio entre subplots
-    fig.subplots_adjust(wspace=0.02, hspace=0.02)
+    fig.subplots_adjust(wspace=0.06, hspace=0.06)
 
     # Configurar tamaño de fuente de los ejes
-    font_size = 14
-    ax1.set_ylabel("E", fontsize=font_size)
-    ax3.set_xlabel("k", fontsize=font_size)
+    font_size = 18
     ax3.set_ylabel("E", fontsize=font_size)
-    ax4.set_xlabel("n", fontsize=font_size)
+    ax1.set_xlabel("k", fontsize=font_size)
+    ax1.set_ylabel("E", fontsize=font_size)
+    ax2.set_xlabel("n", fontsize=font_size)
 
     kspace = np.linspace(0, np.pi, 1000)
     E = t1 * np.sqrt(1 + D ** 2 + 2 * D * np.cos(kspace))
@@ -246,31 +246,39 @@ def plot_all(t1, t2, N):
     ax1.plot(kspace, -E, color="blue")
 
     ax1.scatter(k, values, s=17, color="black",  label="N=" + str(N) + ", $t_1$=" + str(round(t1,2)) + ", $t_2$=" + str(round(t2,2)))
-    ax1.set_title("Dispersion relation", size = 18)
+    ax3.set_title("Relation de dispersion", size = 18)
     ax1.set_yticks([-2, -1,0,1,2])
+    ax1.set_xticks([0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi ])
+    ax3.set_xticks([0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi ])
+    
+    ax1.set_xticklabels(["0", r"$\pi/4$", r"$\pi/2$", r"$3\pi/4$", r"$\pi$"],fontsize = 14)
+
     ax1.grid(visible=True, lw=0.5)
 
     energies, states = eigen(t1, t2, N)
     x = np.arange(1, N+1)
+
     scatter = ax2.scatter(np.tile(x, states.shape[1]), np.repeat(energies, states.shape[0]), c=states.flatten(), cmap='jet')
+
 
     cmin = -0.75
     cmax = +0.75
     scatter.set_clim(cmin, cmax)
 
     cbar = fig.colorbar(scatter, ax=ax2, orientation='vertical', ticks=[-0.5, 0, 0.5], pad=0.05)
-    cbar.set_label("$\Psi_n$", rotation=0, labelpad=20, size=17)
+    cbar.set_label("$C_n$", rotation=0, labelpad=20, size=18)
 #    cbar.ax.invert_yaxis()
     cbar.ax.tick_params(labelsize=14)
 
 
     # Configurar ejes
-    ax2.set_xticks(np.arange(states.shape[0]))
+#    ax2.set_xticks(np.arange(states.shape[0]))
     ax2.set_xticks([1, N])
+    ax2.set_xticklabels([1, N], fontsize = 14)
 
 
     # Añadir título al plot de la derecha
-    ax2.set_title("Eigenstates", size = 18)
+    ax4.set_title("Poids des états propres", size = 18)
 
     # Subplots con t1 y t2 invertidos
     h_inv = hfinal(t2, t1, N)
@@ -283,29 +291,34 @@ def plot_all(t1, t2, N):
 
     ax3.grid(visible=True, lw=0.5)
     ax3.set_yticks([-2,-1,0,1,2])
+    ax3.set_yticklabels([-2,-1,0,1,2],fontsize=14)
+    ax1.set_yticklabels([-2,-1,0,1,2],fontsize=14)
 
     energies_inv, states_inv = eigen(t2, t1, N)
     scatter_inv = ax4.scatter(np.tile(x, states_inv.shape[1]), np.repeat(energies_inv, states_inv.shape[0]), c=states_inv.flatten(), cmap='jet')
 
+
     scatter_inv.set_clim(cmin, cmax)
 
     cbar_inv = fig.colorbar(scatter_inv, ax=ax4, orientation='vertical', ticks=[-0.5, 0, 0.5], pad=0.05)
-    cbar_inv.set_label("$\Psi_n$", rotation=0, labelpad=20, size=17)
+    cbar_inv.set_label("$C_n$", rotation=0, labelpad=20, size=18)
     cbar_inv.ax.tick_params(labelsize=14)
 
 
     # Configurar ejes
-    ax4.set_xticks(np.arange(states.shape[0]))
-    ax4.set_xlabel('n')
+#    ax4.set_xticks(np.arange(states.shape[0]))
+#    ax4.set_xlabel('n')
     ax4.set_xticks([1, N])
-    ax4.set_xlabel('n')
-    
+#    ax4.set_xlabel('n')
+    ax3.set_xticklabels([])
+    ax4.set_xticklabels([])
+     
     # Colocar leyenda en el medio izquierdo
-    ax1.legend(loc="center left", fontsize = 13)
-    ax3.legend(loc="center left", fontsize = 13)
+    ax1.legend(loc="center left", fontsize = 15)
+    ax3.legend(loc="center left", fontsize = 15)
     if (not os.path.exists(ruta_N)):
         os.mkdir(ruta_N)
-    outputplot=ruta_N+"/"+"All.pdf"
+    outputplot=ruta_N+"/"+"All.png"
     plt.savefig(outputplot)    
 #    plt.show()
         
@@ -495,7 +508,7 @@ def mupm (U,t1,t2,N,dop,T):
     
 print(hfinal(t1,t2,N)) 
    
-find_roots(M, D)
+#find_roots(M, D)
 
 #Aq = (0.5*(np.sinh(q*(2*M+1))/np.sinh(q)-1)-M)**(-1/2)
 
@@ -503,7 +516,7 @@ find_roots(M, D)
 
 
 
-mupm(2,t1,t2,N,0,100)
+#mupm(2,t1,t2,N,0,100)
 #find_roots(M,D)
 #plotbulkpm(4,t1,t2,N,2)
 #correlation(1,t1,t2,N,dop)

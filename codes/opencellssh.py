@@ -1,4 +1,4 @@
-######################################################################
+    ######################################################################
 ######################################################################
 #Programa para calcular las autoenergías y los autoestados de una cadena SSH finita de N celdas unidad 
 import sys, os
@@ -9,6 +9,7 @@ from scipy.optimize import bisect
 from scipy.optimize import newton
 from scipy.optimize import brentq
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib.gridspec as gridspec
 import pandas as pd
 from tabulate import tabulate
@@ -22,14 +23,14 @@ import itertools
 ######################################################################
 #Definición constantes 
 
-t1 = 0.7 #integral de salto intra-cell   
-t2 = 0.5 #integral de salto inter-cell
+t1 = 1.2 #integral de salto intra-cell   
+t2 = 1 #integral de salto inter-cell
 D=t2/t1
 N = 20 #número de átomos de la cadena 
 M = N//2 #número de celdas unidad de la cadena
 Mc = D/(1-D) #número de celdas unidad crítico de la cadena
 dop = 2 #dopaje estados de borde
-U = 1 #correlation
+U = 1.5 #correlation
 kb = 8.617333262e-5 #eV/K (Constante de Boltzmann) 
 
 par = N % 2 == 0
@@ -466,43 +467,221 @@ def correlation(U,t1,t2,N,dop):
 
 
     
-def plotbulkpm(U, t1, t2, N, dop):
+def plotpm(U, t1, t2, N, dop):
     ub, ube, ue = correlation(U, t1, t2, N, dop)
-    _,ewoc,_,ewocb = find_roots(M, D)
-    print("\nEWOC = ", ewoc)
-#    print("\nUB = ", ub)
-#    print("\nUBE = ", ube)
-#    print("\nUE = ", ue)
-
-    x = np.arange(1, N + 1)  # Array que incluye todos los elementos
+    _, ewoc, _, ewocb = find_roots(M, D)
+    print("\nEWOC =", ewoc)
+    
     ewc = np.zeros(2 * M)  # Inicializar array "ewc" con ceros
 
-
-    for i in range(2*M):
-#        print("i", i)
-#        print("M", M)
-      
-        if i == M-1 or i == M: 
-#            print("\nEdge state")
-#            print("i = ", i)
-            ewc[i] = ewoc[i] + ue * (1 + dop/2) + np.sum(ube)
-        
+    for i in range(2 * M):
+        if i == M - 1 or i == M: 
+            ewc[i] = ewoc[i] + ue * (1 + dop / 2) + np.sum(ube)
         else:
-            row_index = i%(M-1) 
-#            print("Row index: ",row_index)
-            ewc[i] = ewoc[i] + np.sum(ub[row_index]) + ube[row_index]*(1+dop/2)
-#            print("ub[] = ", ub[row_index])        
-            
+            row_index = i % (M - 1) 
+            ewc[i] = ewoc[i] + np.sum(ub[row_index]) + ube[row_index] * (1 + dop / 2)
 
     print("EWC:", ewc)
-    print("\nEWC-EWOC: ", ewc-ewoc)
-   
-    plt.scatter(x, ewoc,label = "Eigenergies w/o correlation")
-    plt.scatter(x, ewc, label = "Eigenenergies w correlation")
-    plt.title(str(N)+"-atom chain eigenvalues" + ", $t_1$=" + str(round(t1,2)) + ", $t_2$=" + str(round(t2,2)) +", U=" +str(U) +", $\delta$=" +str(dop))
-    plt.grid(visible=True,lw=0.5)
-    plt.legend()
-    plt.show()
+    print("\nEWC-EWOC:", ewc - ewoc)
+    
+    ewoc = np.repeat(ewoc, 2)
+    ewc = np.repeat(ewc, 2)
+    
+    markers = ['v', '^'] * (len(ewoc) // 2)  # Lista alternada de marcadores
+    colors = ['blue', 'red'] * (len(ewoc) // 2)  # Lista alternada de colores
+    
+    din = 0.7
+    dout = (4 * M -1 - 2 * M * din) / (2 * M - 1)
+    d = [1]
+    pos = d[0]
+    for i in range (2 * N -1):
+        if i % 2 == 0:
+            pos += din
+            d.append(pos)
+        else:
+            pos += dout
+            d.append(pos)
+            
+    for i in range(len(ewoc)):
+        plt.scatter(d[i], ewoc[i], marker=markers[i], color=colors[0], label="Eigenenergies w/o correlation" if i == 0 else None)
+        plt.scatter(d[i], ewc[i], marker=markers[i], color=colors[1], label="Eigenenergies w correlation (PM)" if i == 0 else None)
+    
+
+
+    
+    plt.title(str(N) + "-atom chain" + ", $t_1$=" + str(round(t2, 2)) + ", $t_2$=" + str(round(t1, 2)) + ", U/$t_1$=" + str(U) + ", $\delta$=" + str(dop), fontsize = 16)
+    plt.ylabel("E/$t_1$", fontsize = 15)
+    plt.xlabel("State index", fontsize = 15)
+    plt.grid(visible=True, lw=0.5)
+    plt.legend(fontsize = 15)
+    
+    inset_ax = inset_axes(plt.gca(), width="30%", height="30%", loc='lower right')
+    inset_ax.set_title("Edge states zoom", fontsize=12)
+        # Customize the position and size of the inset plot as per your requirement
+    inset_ax.set_xlim(18, 23)  # Set the x-axis limits for the inset plot
+    inset_ax.set_ylim(-0.5, 2)  # Set the y-axis limits for the inset plot
+    inset_ax.set_xticklabels([])  # Set the x-axis tick positions for the inset plot
+    inset_ax.set_yticks([-0.5, 0.7, 2])  # Set the y-axis tick positions for the inset plot
+# Plot the data for the inset plot
+    for i in range(len(ewoc)):
+        inset_ax.scatter(d[i], ewoc[i], marker= markers[i], color='blue', label="Eigenenergies w/o correlation")
+        inset_ax.scatter(d[i], ewc[i], marker= markers[i], color='red', label="Eigenenergies w correlation (PM)")
+    
+    if (not os.path.exists(ruta_N)):
+        os.mkdir(ruta_N)
+    outputp=ruta_N+"/"+"pmdop1.png"
+    plt.savefig(outputp)
+
+
+"""SOLUCIÓN FERROMAGNÉTICA"""
+        
+
+#def plotfm(U, t1, t2, N, dop):
+#    ub, ube, ue = correlation(U, t1, t2, N, dop)
+#    _, ewoc, _, ewocb = find_roots(M, D)
+#    print("\nEWOC =", ewoc)
+#    
+#    ub = np.repeat(ub,2, axis =0)
+#    ube = np.repeat(ube,2)
+#    print("ub", ub)
+#    print("ube", ube)
+#    ewc = np.zeros(2 * M)  # Inicializar array "ewc" con ceros
+#    ewoc = np.repeat(ewoc, 2)
+#    ewc = np.repeat(ewc, 2)
+#    
+#    for i in range(4 * M):
+#        print("\ni = ", i)
+#        if i%2 == 0: 
+#            if i == 2*(M - 1) or i == 2*M: 
+#                ewc[i] = ewoc[i]  + 2 * ue + np.sum(ube)/2
+#            else:
+#                row_index = i % (2 * (M - 1))
+#                print("row_index = ", row_index) 
+#                print("ube[row_index] =", ube[row_index])
+#                ewc[i] = ewoc[i] + np.sum(ub[row_index]) + 2*ube[row_index]
+#        else: 
+#            if i == 2*(M - 1) or i == 2*M: 
+#                ewc[i] = ewoc[i] + np.sum(ube)/2
+#            else:
+#                row_index = i % (2 * (M - 1)) 
+#                ewc[i] = ewoc[i] + np.sum(ub[row_index]) 
+#            
+
+#    print("EWC:", ewc)
+#    print("\nEWC-EWOC:", ewc - ewoc)
+#    
+
+#    
+#    markers = ['v', '^'] * (len(ewoc) // 2)  # Lista alternada de marcadores
+#    colors = ['blue', 'red'] * (len(ewoc) // 2)  # Lista alternada de colores
+#    
+#    din = 0.5
+#    dout = (2 * M - M * din) / M
+#    
+#    d = 0 
+#    for i in range(len(ewoc)):
+#        if i % 2 == 0:
+#            d += dout
+#        else: 
+#            d += din
+#        plt.scatter(d, ewoc[i], marker=markers[i], color=colors[0], label="Eigenergies w/o correlation" if i == 0 else None)
+#        plt.scatter(d, ewc[i], marker=markers[i], color=colors[1], label="Eigenenergies w correlation" if i == 0 else None)
+##        print("d = ", d)
+#    plt.title(str(N) + "-atom chain eigenvalues" + ", $t_1$=" + str(round(t1, 2)) + ", $t_2$=" + str(round(t2, 2)) + ", U/$t_1$=" + str(U) + ", $\delta$=" + str(dop))
+#    plt.grid(visible=True, lw=0.5)
+#    plt.legend()
+#    plt.show()
+
+
+
+def plotfm(U, t1, t2, N, dop):
+    ub, ube, ue = correlation(U, t1, t2, N, dop)
+    _, ewoc, _, ewocb = find_roots(M, D)
+
+    print("\nEWOC =", ewoc)
+    
+    dwc = np.zeros(2 * M)  # Inicializar array "ewc" con ceros
+    uwc = np.zeros(2 * M)
+     
+    for i in range(2 * M):
+        if i == M - 1 or i == M:
+            dwc[i] = ewoc[i]  + 2 * ue + np.sum(ube)
+        else:
+            row_index = i % (M - 1) 
+            dwc[i] = ewoc[i] + np.sum(ub[row_index]) + 2*ube[row_index]
+        print("ewoc[i] = ", ewoc[i]) 
+        
+    for i in range(2 * M):
+        if i == M - 1 or i == M: 
+            uwc[i] = ewoc[i] + np.sum(ube) + ue * dop 
+        else:
+            row_index = i % (M - 1) 
+            uwc[i] = ewoc[i] + np.sum(ub[row_index]) + dop * ube[row_index]
+        print("ewoc[i] = ", ewoc[i])             
+               
+    
+    print("DWC:", dwc)
+    print("UWC:", uwc)
+    ewoc = np.repeat(ewoc, 2)
+    ewc = [item for pair in zip(dwc, uwc) for item in pair]
+    print("EWC: ", ewc)
+    print("\nEWC-EWOC:", ewc - ewoc)
+    if (not os.path.exists(ruta_N)):
+        os.mkdir(ruta_N)
+    outputp=ruta_N+"/"+"fmdop0.pdf"
+    plt.savefig(outputp)
+    
+
+#    ewc = np.repeat(ewc, 2)
+    
+    markers = ['v', '^'] * (len(ewoc) // 2)  # Lista alternada de marcadores
+    colors = ['blue', 'red'] * (len(ewoc) // 2)  # Lista alternada de colores
+    
+    din = 0.7
+    dout = (4 * M -1 - 2 * M * din) / (2 * M - 1)
+    d = [1]
+    pos = d[0]
+    for i in range (2 * N -1):
+        if i % 2 == 0:
+            pos += din
+            d.append(pos)
+        else:
+            pos += dout
+            d.append(pos)
+    
+#    print("d", d)
+
+    print("l: ", len(ewoc))     
+    for i in range(len(ewoc)):
+        plt.scatter(d[i], ewoc[i], marker=markers[i], color=colors[0], label="Eigenenergies w/o correlation" if i == 0 else None)
+        plt.scatter(d[i], ewc[i], marker=markers[i], color=colors[1], label="Eigenenergies w correlation (FM)" if i == 0 else None)
+#        print("d",d[i])
+#        print("ewoc",ewoc[i])
+#        print("ewc",ewc[i])
+    plt.title(str(N) + "-atom chain" + ", $t_1$=" + str(round(t2, 2)) + ", $t_2$=" + str(round(t1, 2)) + ", U/$t_1$=" + str(U) + ", $\delta$=" + str(dop), fontsize = 16)
+    plt.ylabel("E/$t_1$", fontsize = 15)
+    plt.xlabel("State index", fontsize = 15)
+    plt.grid(visible=True, lw=0.5)
+    plt.legend(fontsize = 15)
+    
+    inset_ax = inset_axes(plt.gca(), width="30%", height="30%", loc='lower right')
+    inset_ax.set_title("Edge states zoom", fontsize=12)
+        # Customize the position and size of the inset plot as per your requirement
+    inset_ax.set_xlim(18, 23)  # Set the x-axis limits for the inset plot
+    inset_ax.set_ylim(-0.5, 2.1)  # Set the y-axis limits for the inset plot
+    inset_ax.set_xticklabels([])  # Set the x-axis tick positions for the inset plot
+    inset_ax.set_yticks([-0.5, 0.8, 2.1])  # Set the y-axis tick positions for the inset plot
+# Plot the data for the inset plot
+    for i in range(len(ewoc)):
+        inset_ax.scatter(d[i], ewoc[i], marker= markers[i], color='blue', label="Eigenenergies w/o correlation")
+        inset_ax.scatter(d[i], ewc[i], marker= markers[i], color='red', label="Eigenenergies w correlation (FM)")
+        
+    if (not os.path.exists(ruta_N)):
+        os.mkdir(ruta_N)
+    outputp=ruta_N+"/"+"fmdop2.png"
+    plt.savefig(outputp)
+
+
 
 
 
@@ -531,10 +710,76 @@ def mupm (U,t1,t2,N,dop,T):
     print(musol)
     
 
-    
+def phsdgrm(U,t1,t2,dop):
+    for i in range(2,41,0.1):
+        if i<=2*Mc:
+            y = 0 
+        else: 
+            ub, ube, UE = correlation(U,t1,t2,i,dop)
+            enrgs, stts = eigen(t1,t2,i)
+            enrgs = sorted(enrgs)
+            print(" i", i)
+            print("\nENERGÍAS: ", enrgs)
+            eq = enrgs[i//2]/t1 
+            print("eq = ", eq)   
+#            dad                   
+            UB = sum(el for a in ub for el in a)
+            print("\nUB,", UB)
+#            y = UE * (dop + dop**(2)/4 - 1) + UB + 2 * eq * (1 - dop)
+            y = (2 * UE - eq)*dop + eq * (2 - dop) - UE * (1 + dop/2 )**2
 
+            
+        plt.scatter(i,y,color="red")
+    plt.show()
+
+def phsdgrm(U, t1, t2, dop):
+    fm_points = []  # Puntos correspondientes a la fase FM
+    pm_points = []  # Puntos correspondientes a la fase PM
+    trivial_points = []  # Puntos correspondientes a la fase TRIVIAL
+
+    U_values = np.arange(0.01, 1.6, 0.05)  # Valores de U desde 0.5 hasta 1.5 con incremento de 0.01
+
+    for U_val in U_values:
+        N = []  # Valores de i (N)
+        for i in range(2, 81, 2):
+            m = i // 2
+            if i <= 2 * Mc:
+                trivial_points.append((U_val, m))
+            else:
+                ub, ube, UE = correlation(U_val, t1, t2, i, dop)
+                enrgs, stts = eigen(t1, t2, i)
+                enrgs = sorted(enrgs)
+                eq = enrgs[i // 2] / t1
+                UB = sum(el for a in ub for el in a)
+                y = (2 * UE - eq) * dop + eq * (2 - dop) - UE * (1 + dop / 2) ** 2
+#                y = dop*(2*UE-eq)+eq*(2-dop)-UE*(1+dop/2)**2
+
+                if y < 0:
+                    fm_points.append((U_val, m))
+                else:
+                    pm_points.append((U_val, m))
+            N.append(m)
+
+    plt.scatter([point[1] for point in fm_points], [point[0] for point in fm_points], color='red', label='FM', marker= "s")
+    plt.scatter([point[1] for point in pm_points], [point[0] for point in pm_points], color='blue', label='PM', marker ="s")
+    plt.scatter([point[1] for point in trivial_points], [point[0] for point in trivial_points], color='green', label='TRIVIAL', marker = "s")
+    plt.title("Magnetic phase diagram, " + "$t_1$=" + str(round(t2, 2)) + ", $t_2$=" + str(round(t1, 2)), fontsize=17)
+    plt.xlabel("M", fontsize = 15)
+    plt.ylabel("U/$t_1$", fontsize = 15)
+    plt.legend(fontsize = 15)
+
+    plt.xticks(np.arange(0, 41, 4))  # Establecer los ticks en incrementos de 4
+    plt.axvline(x= Mc, color='black', linestyle='--')  # Línea vertical en Mc
+    outputplot = ruta + "/"+ "phasediagramdop0.png"
+    plt.savefig(outputplot)
+    plt.show()  
+ 
+            
+        
+            
+#phsdgrm(U,t1,t2,dop)
     
-    
+#correlation(U,t1,t2,N,dop)   
 
 #Aq = (0.5*(np.sinh(q*(2*M+1))/np.sinh(q)-1)-M)**(-1/2)
 
@@ -545,8 +790,9 @@ def mupm (U,t1,t2,N,dop,T):
 #correlation(3,t1,t2,N,dop)
 #mupm(3,t1,t2,N,0,10)
 #find_roots(M,D)
-#plotbulkpm(U,t1,t2,N,dop)
+plotfm(U,t1,t2,N,dop)
+#plotpm(U,t1,t2,N,dop)
 
 #eigenstates(t1,t2,N)
 #plot_energias(t1,t2,N)
-plot_all(t1,t2,N)         
+#plot_all(t1,t2,N)         

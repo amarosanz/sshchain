@@ -9,6 +9,7 @@ from scipy.optimize import bisect
 from scipy.optimize import newton
 from scipy.optimize import brentq
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import pandas as pd
 from tabulate import tabulate
 import math
@@ -21,19 +22,22 @@ import itertools
 ######################################################################
 
 #Definición constantes
-t1=1/1.2 #integral de salto intra-cell   
-t2=1.2 #integral de salto inter-cell
-d=t2/t1
-N = 20 #número de átomos de la cadena 
-Mc = 1/(d-1)
+t1=0 #integral de salto intra-cell   
+t2=1 #integral de salto inter-cell
+#d=t2/t1
+N = 40 #número de átomos de la cadena 
+M = N//2
+Dc = (M+1)/M
+#Mc = 1/(d-1)
 print("t1 = ", t1)
 print("t2 = ", t2)
-print("D = ", d)
+#print("D = ", d)
+print("Dc =", Dc)
 if N%2 == 0:
     print("M = ", N//2)
 else:
     print("Cadena impar de N = ",N)
-print("Mc =", Mc)
+#print("Mc =", Mc)
 
 parent_dir = os.path.dirname(os.getcwd())
 if (not os.path.exists(os.path.join(parent_dir, "plots_ssh"))):
@@ -92,10 +96,10 @@ def h_impar(t2,t1,N):
         else:
             matriz_superior_inferior[i+1,i] = t1
     matriz_final = matriz_diag + matriz_superior_inferior
-    
+
     elapsed_time = time.time() - start_time # Tiempo de ejecución
     print(f"Tiempo de ejecución de la función {h_impar.__name__}: {elapsed_time:.5f} segundos") # Imprime el tiempo de ejecución
-    
+
     return matriz_final 
 
 ######################################################################
@@ -187,7 +191,7 @@ def plot_energias(t1,t2,N):
     plt.xlabel("Atom index")
     if N%2 ==0: 
         x = list(range(1,N+1))
-        eigenvaluesa, _, eigenvaluesb, _ = dospar(t1,t2,N)
+        eigenvaluesa, _, eigenvaluesb, _,_ = dospar(t1,t2,N)
 #        plt.scatter(x,sorted(eigenvaluesb), label="$t_1$="+str(t2)+", $t_2$="+str(t1),color="red", s=7)
         plt.scatter(x,sorted(eigenvaluesa), label="$t_1$="+str(t1)+", $t_2$="+str(t2), s=17, color="RED")
         plt.title(str(N)+"-atom chain eigenvalues")
@@ -202,8 +206,10 @@ def plot_energias(t1,t2,N):
     else:
         x_imp = list(range(1,N+1))
         eigenvaluesimp, _ = impar(t1,t2,N)
-        plt.scatter(x_imp,sorted(eigenvaluesimp), label="$t_1$="+str(t1)+", $t_2$="+str(t2), s=17, color="red")
-        plt.title(str(N)+"-atom chain eigenvalues")
+        
+        
+        plt.scatter(x_imp,sorted(eigenvaluesimp), label="$t_1$="+str(t1)+", $t_2$="+str(t2), s=20, color="red")
+        plt.title(str(N)+"-atom chain eigenvalues", fontsize = 15)
         plt.grid(visible=True,lw=0.5)
         plt.legend(fontsize=13)
         if (not os.path.exists(ruta_N)):
@@ -213,28 +219,147 @@ def plot_energias(t1,t2,N):
 
          
         
-    
+    plt.show()
     elapsed_time = time.time() - start_time # Tiempo de ejecución
     print(f"Tiempo de ejecución de la función {plot_energias.__name__}: {elapsed_time:.5f} segundos") # Imprime el tiempo de ejecución
 
 
-    
-#EIGENSTATES
+
+#EIGENENERGIES2
+def plot_energias(t1,t2,N):
+    start_time = time.time() # Comienzo de la medición de tiempo 
+    plt.figure()
+    plt.ylabel("Eigenenergies")
+    plt.xlabel("Atom index")
+    if N % 2 == 0:
+        x = list(range(1, N + 1))
+        eigenvaluesa, _, eigenvaluesb, _, _ = dospar(t1, t2, N)
+
+        plt.scatter(x, sorted(eigenvaluesa), label="Bulk eigenenergies", color="red", s=22)
         
-def plot_eigenstates(t1,t2,N):
+        # Modificación: Representar los dos elementos centrales de eigenvaluesa como puntos azules
+        middle_index = N // 2
+        print(middle_index)
+        plt.scatter([middle_index, middle_index + 1], sorted([eigenvaluesa[middle_index-1], eigenvaluesa[middle_index]]), 
+                    label="Edge eigenenergies", color="blue", s=22)
+        
+        plt.title(str(N) + "-atom chain eigenvalues")
+        plt.grid(visible=True, lw=0.5)
+        plt.legend(fontsize=13)
+        
+        if not os.path.exists(ruta_N):
+            os.mkdir(ruta_N)
+        outputp = ruta_N + "/" + "eigenvalues.png"
+        plt.savefig(outputp)
+            
+    else:
+        x_imp = list(range(1,N+1))
+        del x_imp[N//2]
+        eigenvaluesimp, _ = impar(t1,t2,N)
+        
+        edg = eigenvaluesimp[N//2]
+        eigenvaluesimp= np.delete(eigenvaluesimp, N//2)
+        
+        plt.scatter(x_imp,sorted(eigenvaluesimp), label="Bulk eigenenergies", s=22, color="red")
+        plt.scatter(N//2+1, edg, s=22, label="Edge eigenenergies", color="blue")
+        plt.title(str(N)+"-atom chain eigenvalues", fontsize = 15)
+        plt.grid(visible=True,lw=0.5)
+        plt.legend(fontsize=13)
+        if (not os.path.exists(ruta_N)):
+            os.mkdir(ruta_N)
+        outputp=ruta_N+"/"+"eigenvalues.png"
+        plt.savefig(outputp)
+
+         
+        
+    plt.show()
+    elapsed_time = time.time() - start_time # Tiempo de ejecución
+    print(f"Tiempo de ejecución de la función {plot_energias.__name__}: {elapsed_time:.5f} segundos") # Imprime el tiempo de ejecución
+ 
+
+def plot_energias(t1, t2, N):
+    start_time = time.time()  # Comienzo de la medición de tiempo
+    
+    if N % 2 == 0:
+        fig, axs = plt.subplots(1, 2, figsize=(12, 5))  # Crea una figura con dos subplots
+        
+        # Configuración de ejes
+        axs[0].set_ylabel("Eigenenergies", fontsize = 16)
+        axs[0].set_xlabel("Atom index", fontsize = 16)
+        axs[1].set_xlabel("Atom index", fontsize = 16)
+        
+        # Plot para N
+        x1 = list(range(1, N + 1))
+        eigenvaluesa1, _, _, _, _ = dospar(t1, t2, N)
+        
+        axs[0].scatter(x1, sorted(eigenvaluesa1), label="Bulk eigenenergies", color="red", s=26)
+        middle_index1 = N // 2
+        axs[0].scatter([middle_index1, middle_index1 + 1], sorted([eigenvaluesa1[middle_index1-1], eigenvaluesa1[middle_index1]]),
+                       label="Edge eigenenergies", color="green", s=26)
+        
+        axs[0].set_title(str(N) + "-atom chain eigenenergies", fontsize = 17)
+        axs[0].grid(visible=True, lw=0.5)
+        axs[0].legend(fontsize=13)
+        
+        # Plot para N+1
+        x2 = list(range(1, N + 2))
+        eigenvaluesa2, _ = impar(t1, t2, N + 1)
+        
+        axs[1].scatter(x2, sorted(eigenvaluesa2), label="Bulk eigenenergies", color="red", s=26)
+        middle_index2 = (N + 1) // 2
+        axs[1].scatter([middle_index2+1], [eigenvaluesa2[middle_index2]],
+                       label="Edge eigenenergies", color="green", s=26)
+        
+        axs[1].set_title(str(N + 1) + "-atom chain eigenenergies", fontsize = 17)
+        axs[1].grid(visible=True, lw=0.5)
+        axs[1].legend(fontsize=14)
+        
+        # Ajustar los ejes y etiquetas
+        axs[1].set_ylabel("")  # Remover el título del eje y en el subplot de la derecha
+        axs[1].set_yticklabels([])  # Remover las etiquetas del eje y en el subplot de la derecha
+        
+    else:
+        print("El número debe ser par.")
+        return
+    fig.subplots_adjust(wspace=0.2)
+    if not os.path.exists(ruta_N):
+        os.mkdir(ruta_N)
+    outputp = ruta_N + "/" + "eigenenergiescomp.pdf"
+    plt.savefig(outputp)
+    
+    plt.show()
+    elapsed_time = time.time() - start_time  # Tiempo de ejecución
+    print(f"Tiempo de ejecución de la función {plot_energias.__name__}: {elapsed_time:.5f} segundos")  # Imprime el tiempo de ejecución
+        
+#EIGENSTATES
+def plot_alleigenstates(t1,t2,N):
     start_time = time.time() # Comienzo de la medición de tiempo 
     
     X_par=[i for i in range(2, N+1,2)]
     X_impar=[i for i in range(1,N+1,2)]  
       
-    for j in range(0,N):
+    for j in range(1,N+1):
         pesos_a,pesos_b=eigenstates(t1,t2,N)
+#        if N%2 == 0 and (j == N/2-1):
+#            psima = np.array(pesos_a[j])
+#            print("psima", psima)
+#            psimb = np.array(pesos_b[j]) 
+#            psipa = np.array(pesos_a[j+1])
+#            psipb = np.array(pesos_b[j+1])
+#            lefta = (psima+psipa)
+#            leftb = (psimb+psipb)
+#            righta = (psimb-psipb)
+#            rightb = (psimb-psipb)
+#            plt.bar(X_par,leftb,color="red", edgecolor="black",label="B atoms")
+#            plt.bar(X_impar,lefta,color="blue", edgecolor="black", label="A atoms")
+#            plt.show()
+
         plt.figure()
 #        print("Pesos átomos A",pesos_a)
 #        print("Pesos átomos B",pesos_b)
-        plt.bar(X_par,pesos_b[j],color="red", edgecolor="black",label="B atoms")
-        plt.bar(X_impar,pesos_a[j],color="blue", edgecolor="black", label="A atoms")
-        plt.title("Eigenstate number " + str(j+1) + " for $t_1$=" + str(round(t1,2)) + ", $t_2$=" + str(round(t2,2)))
+        plt.bar(X_par,pesos_b[j-1],color="red", edgecolor="black",label="B atoms")
+        plt.bar(X_impar,pesos_a[j-1],color="blue", edgecolor="black", label="A atoms")
+        plt.title("Eigenstate number " + str(j) + " for $t_1$=" + str(round(t1,2)) + ", $t_2$=" + str(round(t2,2)))
 
         plt.legend()
         plt.xlabel("Atom index")
@@ -242,15 +367,151 @@ def plot_eigenstates(t1,t2,N):
         if (not os.path.exists(ruta_N)):
             os.mkdir(ruta_N)
         print(j)
-        outputplot=ruta_N+"/"+"Eigenstate"+str(j+1)+".pdf"
+        outputplot=ruta_N+"/"+"Eigenstate"+str(j)+".pdf"
         plt.savefig(outputplot)
   
     j+=1
     elapsed_time = time.time() - start_time # Tiempo de ejecución
-    print(f"Tiempo de ejecución de la función {plot_eigenstates.__name__}: {elapsed_time:.5f} segundos") # Imprime el tiempo de ejecución
-
+    print(f"Tiempo de ejecución de la función {plot_eigenstates.__name__}: {elapsed_time:.5f} segundos") # Imprime el tiempo de ejecución        
     
+    
+def plot_eigenstates(t1, t2, N):
+    start_time = time.time()  # Comienzo de la medición de tiempo
 
+    X_par = [i for i in range(2, N+1, 2)]
+    X_impar = [i for i in range(1, N+1, 2)]
+
+    eigenstate_indices = [2, 4, 20]  # Índices de los estados eigen a graficar
+
+    fig = plt.figure(figsize=(12, 4))
+    gs = GridSpec(1, 3)
+
+    # Calcular los ticks y números del eje y para los subplots de la izquierda
+    y_ticks = [-0.3, -0.2, -0.1, 0, 0.1, 0.2,0.3]
+    y_labels = [str(tick) for tick in y_ticks]
+    print(y_labels)
+
+    for idx, j in enumerate(eigenstate_indices):
+        pesos_a, pesos_b = eigenstates(t1, t2, N)
+
+        ax = fig.add_subplot(gs[0, idx])  # Añadir subplot al grid
+        
+
+
+        if idx == 0:
+            ax.set_yticks(y_ticks)  # Ticks del eje y en el primer subplot
+            ax.set_yticklabels(y_ticks)  # Números del eje y en el primer subplot
+            ax.set_ylabel("Eigenstate weight", fontsize = 15)  # Etiqueta del eje y
+        else:
+            ax.set_yticks(y_ticks)  # Ticks del eje y en el segundo y tercer subplot
+            ax.set_yticklabels([])  # Sin números del eje y en el segundo y tercer subplot
+
+        ax.bar(X_par, pesos_b[j-1], color="red", edgecolor="black", label="B atoms")
+        ax.bar(X_impar, pesos_a[j-1], color="blue", edgecolor="black", label="A atoms")
+
+
+        ax.set_xlabel("Atom index", fontsize = 15)  # Título del eje x
+
+        ax.legend(fontsize = 13)
+
+    plt.tight_layout()
+
+
+    if not os.path.exists(ruta_N):
+        os.mkdir(ruta_N)
+
+    outputplot = ruta_N + "/eigenstates_3subplots.pdf"
+    plt.savefig(outputplot)
+    plt.close()
+
+    elapsed_time = time.time() - start_time  # Tiempo de ejecución
+    print(f"Tiempo de ejecución de la función {plot_eigenstates.__name__}: {elapsed_time:.5f} segundos")  # Imprime el tiempo de ejecución
+
+
+
+
+
+
+
+def pltevenoddegnsts(t1, t2, N):
+    fig, axs = plt.subplots(1, 3, figsize=(15, 5))  # Crea una figura con tres subplots
+    
+    # Configuración de ejes
+    axs[0].set_ylabel("Eigenstate weight", fontsize=16)
+    axs[0].set_xlabel("Atom index", fontsize=16)
+    axs[1].set_xlabel("Atom index", fontsize=16)
+    axs[2].set_xlabel("Atom index", fontsize=16)
+    
+    title1 = "Edge state (A), N = " +str(N)
+    title2 = "Edge state (S), N = " +str(N)
+    title3 = "Edge state, N = " +str(N+1)
+    # Calcular los ticks y números del eje y para los subplots de la izquierda
+    y_ticks = [-0.5, -0.25, 0, 0.25, 0.5]
+    y_labels = [str(tick) for tick in y_ticks]
+    
+    # Plot para N par
+    X_par = [i for i in range(2, N + 1, 2)]
+    X_impar = [i for i in range(1, N + 1, 2)]
+    eigenstate_indices = [N // 2 - 1, N // 2]  # Índices de los estados eigen a graficar
+
+    pesos_a, pesos_b = eigenstates(t1, t2, N)
+    for idx, j in enumerate(eigenstate_indices):
+        axs[idx].bar(X_par, pesos_b[j], color="red", edgecolor="black", label="B atoms")
+        axs[idx].bar(X_impar, pesos_a[j], color="blue", edgecolor="black", label="A atoms")
+        axs[idx].set_yticks(y_ticks)  # Ticks del eje y en el primer subplot
+        axs[idx].set_title(title1 if idx == 0 else title2, fontsize = 17)  # Cambiar título del subplot
+        axs[idx].legend(loc = "upper center", fontsize = 14)
+
+        if idx == 0:
+            axs[idx].set_yticklabels(y_labels)  # Números del eje y en el primer subplot
+        else: 
+            axs[idx].set_yticklabels([])  # Sin números del eje y en el segundo subplot
+
+    # Plot para N impar
+    X_par2 = [i for i in range(2, N + 2, 2)]
+    X_impar2 = [i for i in range(1, N + 2, 2)]
+    eigenstate_indices2 = [(N+1) // 2 ]  # Índices de los estados eigen a graficar
+
+    pesos_a2, pesos_b2 = eigenstates(t1, t2, N + 1)
+    for idx2, j2 in enumerate(eigenstate_indices2):
+        axs[idx2+2].bar(X_par2, pesos_b2[j2], color="red", edgecolor="black", label="B atoms")
+        axs[idx2+2].bar(X_impar2, pesos_a2[j2], color="blue", edgecolor="black", label="A atoms")
+        axs[idx2+2].set_yticks(y_ticks)  # Ticks del eje y en el primer subplot
+        axs[idx2+2].set_title(title3, fontsize = 17)  # Cambiar título del subplot
+        axs[idx2+2].set_yticklabels([])  # Sin números del eje y en el tercer subplot
+        axs[idx2+2].legend(loc = "upper left", fontsize = 14)
+
+    plt.tight_layout()
+    if not os.path.exists(ruta_N):
+        os.mkdir(ruta_N)
+
+    outputplot = ruta_N + "/eigenstates_3evnodd.pdf"
+    plt.savefig(outputplot)
+              
+        
+    
+    
+def locstates(t1,t2,N):
+    X_par=[i for i in range(2, N+1,2)]
+    X_impar=[i for i in range(1,N+1,2)]  
+    pesos_a,pesos_b=eigenstates(t1,t2,N)
+    psima = np.array(pesos_a[M-1])
+    psimb = np.array(pesos_b[M-1])
+    psipa = np.array(pesos_a[M])
+    psipb = np.array(pesos_b[M])
+    
+    lefta = 1/(np.sqrt(2))*(psima+psipa)
+    leftb = 1/(np.sqrt(2))*(psimb+psipb)
+    
+    plt.figure()
+    plt.bar(X_par,leftb,color="red", edgecolor="black",label="B atoms")
+    plt.bar(X_impar,lefta,color="blue", edgecolor="black", label="A atoms")
+    plt.title("Left localized state for $t_1$=" + str(round(t1,2)) + ", $t_2$=" + str(round(t2,2)))
+
+    plt.legend()
+    plt.xlabel("Atom index")
+    plt.ylabel("Eigenstate weight")
+    plt.show()       
 
 #######################################################################
 #######################################################################
@@ -543,7 +804,14 @@ def Ak(M): #Evolucion del coeficiente Ak en función de k
 #Vedge(1,N//2,d)  
 #Vbulkedge(1,N//2,d)  
 #plot_eigenstates(t1,t2,N)
-print(tridiagfinal(t1,t2,N))
+#print(tridiagfinal(t1,t2,N))
+
+#find_roots(M,d)
+#locstates(t1,t2,N)
+#plot_energias(t1,t2,N)
+
+plot_alleigenstates(t1,t2,N)
+#pltevenoddegnsts(t1,t2,N)
 
 
 #print(h_impar(t2,t1,5))
